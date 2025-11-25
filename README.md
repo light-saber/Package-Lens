@@ -2,7 +2,8 @@
 
 **PackageLens** is a unified macOS utility that aggregates, displays, and manages installed software packages from Homebrew, Pip, and Npm. It provides a clean, modern interface to view installed versions, check for updates, and get uninstallation commands without switching between multiple terminal windows.
 
-![PackageLens Preview](screenshots/app-preview.png)
+![PackageLens Preview 1](screenshots/PackageLens1.png)
+![PackageLens Preview 2](screenshots/PackageLens2.png)
 
 ## Features
 
@@ -11,7 +12,6 @@
 - **Update Detection**: Instantly see which packages have updates available.
 - **Detailed Insights**: View installation paths, versions, and descriptions.
 - **Uninstall Helper**: One-click copy for uninstallation commands.
-- **Modern UI**: Built with a premium, dark-mode-first design using Glassmorphism effects.
 
 ## Tech Stack
 
