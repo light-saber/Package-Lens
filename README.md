@@ -8,8 +8,8 @@
 ## Features
 
 - **Multi-Manager Support**: Seamlessly view packages from Homebrew, Pip (Python), and Npm (Node.js).
-- **Unified Dashboard**: A single, searchable list for all your development tools.
-- **Update Detection**: Instantly see which packages have updates available.
+- **Unified Dashboard**: A searchable list with per-manager counts and an outdated-only filter.
+- **Update Detection**: See available updates, upgrade one package with live output, or update the filtered outdated list sequentially. Failed update checks appear as "Not checked".
 - **Detailed Insights**: View installation paths, versions, and descriptions.
 - **Uninstall Helper**: One-click copy for uninstallation commands.
 
@@ -24,7 +24,7 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/package-lens.git
+   git clone https://github.com/light-saber/Package-Lens.git
    ```
 2. Install dependencies:
    ```bash

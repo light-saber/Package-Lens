@@ -2,7 +2,7 @@
   "name": "package-lens",
   "productName": "PackageLens",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:react\" \"npm run dev:electron\"",
@@ -38,5 +38,21 @@
     "vite": "^7.2.4",
     "vitest": "3.2.4",
     "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.lightsaber.packagelens",
+    "productName": "PackageLens",
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": "dmg"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ]
   }
 }

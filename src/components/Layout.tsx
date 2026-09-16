@@ -34,7 +34,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </nav>
 
                 <div className="sidebar-footer">
-                    v1.0.0
+                    v{__APP_VERSION__}
                 </div>
             </aside>
 
