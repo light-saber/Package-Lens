@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
-import type { Package, ScannerError, ScanResponse, UpdateEvent } from '../types';
+import type { Package, ScannerError, ScanResponse, UpdateEvent, SortKey, SortState } from '../types';
+import { compareSemver } from '../lib/semver';
+
+export type { SortKey, SortState };
 
 interface UpdateLog { lines: string[]; exitCode?: number }
 interface AppContextType {
@@ -26,6 +29,9 @@ interface AppContextType {
     setSelectedPackage: (pkg: Package | null) => void;
     refreshPackages: () => Promise<void>;
     filteredPackages: Package[];
+    sort: SortState;
+    toggleSort: (key: SortKey) => void;
+    clearFilters: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +46,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [searchQuery, setSearchQuery] = useState('');
     const [managerFilter, setManagerFilter] = useState<'all' | 'brew' | 'pip' | 'npm'>('all');
     const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+    const [sort, setSort] = useState<SortState>({ key: 'name', direction: 'asc' });
+
+    const toggleSort = (key: SortKey) => setSort(prev => prev.key === key
+        ? { ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' });
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setManagerFilter('all');
+        setStatusFilter('all');
+    };
 
     const [updatingPackages, setUpdatingPackages] = useState<Set<string>>(new Set());
     const [updateLogs, setUpdateLogs] = useState<Record<string, UpdateLog>>({});
@@ -141,11 +158,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }), [packages]);
     const outdatedCount = useMemo(() => packages.filter(pkg => pkg.status === 'update').length, [packages]);
 
-    const filteredPackages = packages.filter((pkg) => {
-        const matchesSearch = pkg.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesManager = managerFilter === 'all' || pkg.manager === managerFilter;
-        return matchesSearch && matchesManager && (statusFilter === 'all' || pkg.status === 'update');
-    });
+    const filteredPackages = useMemo(() => {
+        const q = searchQuery.toLowerCase();
+        const filtered = packages.filter((pkg) => {
+            const matchesSearch = pkg.name.toLowerCase().includes(q) || pkg.description.toLowerCase().includes(q);
+            const matchesManager = managerFilter === 'all' || pkg.manager === managerFilter;
+            const matchesStatus = statusFilter === 'all' || pkg.status === 'update';
+            return matchesSearch && matchesManager && matchesStatus;
+        });
+
+        const statusRank: Record<Package['status'], number> = { update: 0, current: 1, unknown: 2 };
+        const managerRank: Record<Package['manager'], number> = { brew: 0, pip: 1, npm: 2 };
+
+        return [...filtered].sort((a, b) => {
+            let cmp = 0;
+            switch (sort.key) {
+                case 'name':
+                    cmp = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+                    break;
+                case 'version':
+                    cmp = compareSemver(a.version, b.version);
+                    break;
+                case 'status':
+                    cmp = statusRank[a.status] - statusRank[b.status];
+                    break;
+                case 'manager':
+                    cmp = managerRank[a.manager] - managerRank[b.manager];
+                    break;
+            }
+            if (sort.direction === 'desc') {
+                cmp = -cmp;
+            }
+            if (cmp !== 0) return cmp;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
+    }, [packages, searchQuery, managerFilter, statusFilter, sort]);
 
     return (
         <AppContext.Provider
@@ -173,6 +220,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 setSelectedPackage,
                 refreshPackages,
                 filteredPackages,
+                sort,
+                toggleSort,
+                clearFilters,
             }}
         >
             {children}

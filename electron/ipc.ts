@@ -1,6 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, shell } from 'electron';
 import { getAllPackages, resolvePipCmd } from './scanners';
-import { updatePackage, updateAll } from './updater';
+import { updatePackage, updateAll, buildUpdateArgs } from './updater';
 import { Package, ScanResponse, ScanResult } from './types';
 import { readCache, writeCache } from './cache';
 
@@ -69,6 +69,26 @@ export function registerIpcHandlers(getCacheDir: () => string) {
                 return `npm uninstall -g ${pkg.name}`;
             default:
                 return '';
+        }
+    });
+
+    ipcMain.handle('get-update-command', async (_event, pkg: Package) => {
+        try {
+            const { command, args } = await buildUpdateArgs(pkg.manager, pkg.name);
+            return [command, ...args].join(' ');
+        } catch {
+            return '';
+        }
+    });
+
+    ipcMain.handle('open-external', async (_event, url: string) => {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                await shell.openExternal(url);
+            }
+        } catch {
+            // Reject non-http(s) or invalid URLs
         }
     });
 }

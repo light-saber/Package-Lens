@@ -1,22 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Copy, Terminal, X, Folder } from 'lucide-react';
+import { Copy, Terminal, X, Folder, ExternalLink } from 'lucide-react';
+
+function getHostname(url: string): string {
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return url;
+    }
+}
 
 export const DetailPanel: React.FC = () => {
     const { selectedPackage, setSelectedPackage, updatingPackages, updateLogs, updateBusy, loading, updatePackage } = useApp();
     const [uninstallCmd, setUninstallCmd] = useState('');
-    const [copied, setCopied] = useState(false);
+    const [updateCmd, setUpdateCmd] = useState('');
+    const [copiedUninstall, setCopiedUninstall] = useState(false);
+    const [copiedUpdate, setCopiedUpdate] = useState(false);
 
     useEffect(() => {
         if (selectedPackage) {
-            window.electronAPI.getUninstallCommand(selectedPackage).then(setUninstallCmd);
+            Promise.all([
+                window.electronAPI.getUninstallCommand(selectedPackage),
+                window.electronAPI.getUpdateCommand(selectedPackage),
+            ]).then(([uninstall, update]) => {
+                setUninstallCmd(uninstall);
+                setUpdateCmd(update);
+            });
         }
     }, [selectedPackage]);
 
-    const handleCopy = () => {
+    const handleCopyUninstall = () => {
         navigator.clipboard.writeText(uninstallCmd);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setCopiedUninstall(true);
+        setTimeout(() => setCopiedUninstall(false), 2000);
+    };
+
+    const handleCopyUpdate = () => {
+        navigator.clipboard.writeText(updateCmd);
+        setCopiedUpdate(true);
+        setTimeout(() => setCopiedUpdate(false), 2000);
     };
 
     if (!selectedPackage) return null;
@@ -43,6 +65,22 @@ export const DetailPanel: React.FC = () => {
                     </div>
                 )}
 
+                {/* Homepage */}
+                {selectedPackage.homepage && (
+                    <div className="detail-section">
+                        <h3>Homepage</h3>
+                        <button
+                            type="button"
+                            className="homepage-link-btn"
+                            title={selectedPackage.homepage}
+                            onClick={() => window.electronAPI.openExternal(selectedPackage.homepage)}
+                        >
+                            <span>{getHostname(selectedPackage.homepage)}</span>
+                            <ExternalLink size={14} />
+                        </button>
+                    </div>
+                )}
+
                 {/* Version Info */}
                 <div className="detail-section">
                     <h3>Version</h3>
@@ -52,6 +90,11 @@ export const DetailPanel: React.FC = () => {
                             <span className="status-update">→ {selectedPackage.latestVersion} available</span>
                         )}
                     </div>
+                    {selectedPackage.installedAt && (
+                        <div className="installed-date">
+                            Installed {new Date(selectedPackage.installedAt).toLocaleDateString()}
+                        </div>
+                    )}
                 </div>
 
                 {selectedPackage.status === 'update' && <button className="update-btn"
@@ -69,6 +112,24 @@ export const DetailPanel: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Update Command */}
+                <div className="detail-section">
+                    <h3>
+                        <Terminal size={14} /> Update Command
+                    </h3>
+                    <div className="cmd-block">
+                        {updateCmd || 'Loading...'}
+                        <button
+                            type="button"
+                            onClick={handleCopyUpdate}
+                            className="copy-btn"
+                            title="Copy to clipboard"
+                        >
+                            {copiedUpdate ? <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>✓</span> : <Copy size={14} />}
+                        </button>
+                    </div>
+                </div>
+
                 {/* Uninstall */}
                 <div className="detail-section">
                     <h3>
@@ -77,11 +138,12 @@ export const DetailPanel: React.FC = () => {
                     <div className="cmd-block">
                         {uninstallCmd || 'Loading...'}
                         <button
-                            onClick={handleCopy}
+                            type="button"
+                            onClick={handleCopyUninstall}
                             className="copy-btn"
                             title="Copy to clipboard"
                         >
-                            {copied ? <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>✓</span> : <Copy size={14} />}
+                            {copiedUninstall ? <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>✓</span> : <Copy size={14} />}
                         </button>
                     </div>
                 </div>

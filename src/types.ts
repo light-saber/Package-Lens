@@ -22,9 +22,14 @@ declare global {
             rescanPackages: () => Promise<ScanResponse>;
             onScanComplete: (callback: (response: ScanResponse) => void) => () => void;
             getUninstallCommand: (pkg: Package) => Promise<string>;
+            getUpdateCommand: (pkg: Package) => Promise<string>;
+            openExternal: (url: string) => Promise<void>;
         };
     }
 }
+
+export type SortKey = 'name' | 'version' | 'status' | 'manager';
+export interface SortState { key: SortKey; direction: 'asc' | 'desc'; }
 
 export interface ScannerError {
     manager: Package['manager'];

@@ -17,4 +17,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => { ipcRenderer.removeListener('scan-complete', listener); };
     },
     getUninstallCommand: (pkg: Package) => ipcRenderer.invoke('get-uninstall-command', pkg),
+    getUpdateCommand: (pkg: Package) => ipcRenderer.invoke('get-update-command', pkg),
+    openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
 });

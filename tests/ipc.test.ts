@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import type { ScanResponse, ScanResult } from '../electron/types';
+import type { ScanResult } from '../electron/types';
 const mocks = vi.hoisted(() => ({
-    handlers: new Map<string, (event: { sender: { isDestroyed: () => boolean; send: ReturnType<typeof vi.fn> } }, ...args: unknown[]) => Promise<ScanResponse>>(),
+    handlers: new Map<string, (event: { sender: { isDestroyed: () => boolean; send: ReturnType<typeof vi.fn> } }, ...args: unknown[]) => Promise<unknown>>(),
     scan: vi.fn(), read: vi.fn(), write: vi.fn(), open: vi.fn(),
 }));
 vi.mock('electron', () => ({
@@ -66,4 +66,32 @@ it('releases the shared guard after a failed scan', async () => {
     await expect(invoke('rescan-packages')).rejects.toThrow('scan failed');
     expect(await invoke('rescan-packages')).toMatchObject({ ...result, stale: false });
     expect(mocks.scan).toHaveBeenCalledTimes(2);
+});
+
+it('builds update commands and safely returns empty string on error', async () => {
+    expect(await invoke('get-update-command', { manager: 'brew', name: 'wget' })).toBe('brew upgrade wget');
+    expect(await invoke('get-update-command', { manager: 'pip', name: 'requests' })).toBe('pip install --upgrade requests');
+    expect(await invoke('get-update-command', { manager: 'npm', name: 'typescript' })).toBe('npm update -g typescript');
+    expect(await invoke('get-update-command', { manager: 'npm', name: 'bad; command' })).toBe('');
+});
+
+it('restricts open-external to http and https URLs', async () => {
+    await invoke('open-external', 'https://brew.sh');
+    expect(mocks.open).toHaveBeenCalledWith('https://brew.sh');
+
+    mocks.open.mockClear();
+    await invoke('open-external', 'http://example.com/docs');
+    expect(mocks.open).toHaveBeenCalledWith('http://example.com/docs');
+
+    mocks.open.mockClear();
+    await invoke('open-external', 'javascript:alert(1)');
+    expect(mocks.open).not.toHaveBeenCalled();
+
+    mocks.open.mockClear();
+    await invoke('open-external', 'file:///etc/passwd');
+    expect(mocks.open).not.toHaveBeenCalled();
+
+    mocks.open.mockClear();
+    await invoke('open-external', 'not-a-url');
+    expect(mocks.open).not.toHaveBeenCalled();
 });
