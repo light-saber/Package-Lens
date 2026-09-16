@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Package } from '../types';
+import type { Package, ScannerError } from '../types';
 
 interface AppContextType {
     packages: Package[];
+    scanErrors: ScannerError[];
     loading: boolean;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
@@ -18,6 +19,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [packages, setPackages] = useState<Package[]>([]);
+    const [scanErrors, setScanErrors] = useState<ScannerError[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [managerFilter, setManagerFilter] = useState<'all' | 'brew' | 'pip' | 'npm'>('all');
@@ -27,7 +29,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLoading(true);
         try {
             const data = await window.electronAPI.getPackages();
-            setPackages(data);
+            setPackages(data.packages);
+            setScanErrors(data.errors);
         } catch (error) {
             console.error('Failed to fetch packages:', error);
         } finally {
@@ -49,6 +52,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         <AppContext.Provider
             value={{
                 packages,
+                scanErrors,
                 loading,
                 searchQuery,
                 setSearchQuery,
@@ -65,6 +69,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 };
 
+// Context and its hook intentionally share this module.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useApp = () => {
     const context = useContext(AppContext);
     if (!context) {

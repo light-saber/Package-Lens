@@ -1,0 +1,8 @@
+{
+  "path": "/usr/local/lib",
+  "dependencies": {
+    "typescript": {
+      "version": "5.8"
+    }
+  }
+}

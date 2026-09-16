@@ -1,0 +1,30 @@
+{
+  "formulae": [
+    {
+      "name": "wget",
+      "versions": {
+        "stable": "2.1.0"
+      },
+      "installed": [
+        {
+          "version": "2.0.5",
+          "path": "/opt/homebrew/Cellar/wget/2.0.5",
+          "runtime_dependencies": [
+            {
+              "path": "/other/dependency"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "casks": [
+    {
+      "token": "editor",
+      "name": [
+        "Editor"
+      ],
+      "version": "1.0"
+    }
+  ]
+}

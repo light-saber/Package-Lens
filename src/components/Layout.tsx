@@ -1,20 +1,18 @@
 import React from 'react';
-import { Package, Layers, Terminal } from 'lucide-react';
+import { Package, Layers, Terminal, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const NavItem = ({ label, icon: Icon, value }: { label: string; icon: LucideIcon; value: 'all' | 'brew' | 'pip' | 'npm' }) => {
     const { managerFilter, setManagerFilter } = useApp();
-
-    const NavItem = ({ label, icon: Icon, value }: { label: string; icon: any; value: 'all' | 'brew' | 'pip' | 'npm' }) => (
-        <button
-            onClick={() => setManagerFilter(value)}
-            className={`nav-item ${managerFilter === value ? 'active' : ''}`}
-        >
+    return (
+        <button onClick={() => setManagerFilter(value)} className={`nav-item ${managerFilter === value ? 'active' : ''}`}>
             <Icon size={18} />
             <span>{label}</span>
         </button>
     );
+};
 
+export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
         <div className="app-container">
             {/* Sidebar */}

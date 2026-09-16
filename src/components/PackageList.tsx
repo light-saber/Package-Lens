@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react';
 
 export const PackageList: React.FC = () => {
     const { filteredPackages, loading, selectedPackage, setSelectedPackage } = useApp();
@@ -48,10 +48,15 @@ export const PackageList: React.FC = () => {
                                 </span>
                             </td>
                             <td>
-                                {pkg.latestVersion && pkg.latestVersion !== pkg.version ? (
+                                {pkg.status === 'update' ? (
                                     <div className="status-update">
                                         <AlertCircle size={14} />
                                         <span>Update: {pkg.latestVersion}</span>
+                                    </div>
+                                ) : pkg.status === 'unknown' ? (
+                                    <div className="status-unknown" style={{ color: 'var(--color-info)' }}>
+                                        <HelpCircle size={14} />
+                                        <span>Not checked</span>
                                     </div>
                                 ) : (
                                     <div className="status-ok">

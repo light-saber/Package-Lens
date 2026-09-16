@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { getAllPackages } from './scanners';
+import { getAllPackages, resolvePipCmd } from './scanners';
 import { Package } from './types';
 
 export function registerIpcHandlers() {
@@ -15,7 +15,7 @@ export function registerIpcHandlers() {
                 // For now, 'brew uninstall' is safe.
                 return `brew uninstall ${pkg.name}`;
             case 'pip':
-                return `pip3 uninstall ${pkg.name}`;
+                return `${await resolvePipCmd()} uninstall ${pkg.name}`;
             case 'npm':
                 return `npm uninstall -g ${pkg.name}`;
             default:

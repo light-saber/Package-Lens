@@ -1,0 +1,12 @@
+{
+  "installed": [
+    {
+      "metadata": {
+        "name": "requests",
+        "version": "2.0"
+      },
+      "metadata_location": "/python/requests.dist-info",
+      "installer": "pip"
+    }
+  ]
+}
