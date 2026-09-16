@@ -32,6 +32,8 @@ interface AppContextType {
     sort: SortState;
     toggleSort: (key: SortKey) => void;
     clearFilters: () => void;
+    searchInputRef: React.RefObject<HTMLInputElement | null>;
+    focusSearch: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,6 +58,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSearchQuery('');
         setManagerFilter('all');
         setStatusFilter('all');
+    };
+
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const focusSearch = () => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
     };
 
     const [updatingPackages, setUpdatingPackages] = useState<Set<string>>(new Set());
@@ -223,6 +231,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 sort,
                 toggleSort,
                 clearFilters,
+                searchInputRef,
+                focusSearch,
             }}
         >
             {children}

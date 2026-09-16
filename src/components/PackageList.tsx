@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp, type SortKey } from '../context/AppContext';
 import { AlertCircle, CheckCircle2, HelpCircle, ArrowUp, ArrowDown, ArrowUpDown, ExternalLink } from 'lucide-react';
 import type { Package } from '../types';
@@ -23,6 +23,12 @@ export const PackageList: React.FC = () => {
         refreshPackages,
         clearFilters,
     } = useApp();
+
+    useEffect(() => {
+        if (!selectedPackage) return;
+        const key = `${selectedPackage.manager}:${selectedPackage.name}`;
+        document.querySelector(`[data-pkg-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: 'nearest' });
+    }, [selectedPackage]);
 
     if (loading && filteredPackages.length === 0) {
         return (

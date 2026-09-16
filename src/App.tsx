@@ -3,8 +3,10 @@ import { Layout } from './components/Layout';
 import { FilterBar } from './components/FilterBar';
 import { PackageList } from './components/PackageList';
 import { DetailPanel } from './components/DetailPanel';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 const AppContent = () => {
+  useKeyboardShortcuts();
   const { selectedPackage } = useApp();
   return (
     <Layout>
