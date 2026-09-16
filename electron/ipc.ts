@@ -1,9 +1,30 @@
 import { ipcMain } from 'electron';
 import { getAllPackages, resolvePipCmd } from './scanners';
 import { updatePackage, updateAll } from './updater';
-import { Package } from './types';
+import { Package, ScanResponse, ScanResult } from './types';
+import { readCache, writeCache } from './cache';
 
-export function registerIpcHandlers() {
+let scanPromise: Promise<ScanResult> | null = null;
+let completedAt: string | null = null;
+
+async function freshScan(getCacheDir: () => string): Promise<ScanResponse> {
+    if (!scanPromise) {
+        scanPromise = (async () => {
+            const result = await getAllPackages();
+            completedAt = new Date().toISOString();
+            try {
+                await writeCache(getCacheDir(), { formatVersion: 1, scannedAt: completedAt, result });
+            } catch {
+                console.warn('Unable to persist scan cache');
+            }
+            return result;
+        })().finally(() => { scanPromise = null; });
+    }
+    const result = await scanPromise;
+    return { ...result, scannedAt: completedAt, stale: false };
+}
+
+export function registerIpcHandlers(getCacheDir: () => string) {
     let updating = false;
     const runUpdate = async <T>(action: () => Promise<T>) => {
         if (updating) throw new Error('An update is already running');
@@ -18,8 +39,21 @@ export function registerIpcHandlers() {
         runUpdate(() => updateAll(packages, output => {
             if (!event.sender.isDestroyed()) event.sender.send('update-output', output);
         })));
-    ipcMain.handle('get-packages', async () => {
-        return await getAllPackages();
+    ipcMain.handle('get-packages', async event => {
+        if (scanPromise) return freshScan(getCacheDir);
+        const cache = await readCache(getCacheDir());
+        // Another request may have started a scan while the cache was read.
+        if (scanPromise) return freshScan(getCacheDir);
+        if (!cache) return freshScan(getCacheDir);
+        void freshScan(getCacheDir).then(response => {
+            if (!event.sender.isDestroyed()) event.sender.send('scan-complete', response);
+        }).catch(() => { console.warn('Background scan failed'); });
+        return { ...cache.result, scannedAt: cache.scannedAt, stale: true } satisfies ScanResponse;
+    });
+    ipcMain.handle('rescan-packages', async event => {
+        const response = await freshScan(getCacheDir);
+        if (!event.sender.isDestroyed()) event.sender.send('scan-complete', response);
+        return response;
     });
 
     ipcMain.handle('get-uninstall-command', async (_event, pkg: Package) => {

@@ -62,3 +62,48 @@ it('does not accept npm output from a failed execution', async () => {
     expect(scan.packages[0].status).toBe('unknown');
     expect(scan.errors).toHaveLength(1);
 });
+
+
+it('enriches formula, cask and pip metadata with their available fields', () => {
+    expect(mapBrewFormula(info.formulae[0], new Map())).toMatchObject({
+        homepage: 'https://www.gnu.org/software/wget/', installedAt: '2026-05-02 18:30:00 UTC',
+    });
+    expect(mapBrewFormula({ name: 'new', installed: [], urls: { homepage: 'https://example.com' } }, new Map()).homepage).toBe('https://example.com');
+    expect(mapBrewCask(info.casks[0], new Map()).homepage).toBe('https://example.com/editor');
+    expect(mapPipItem(pip.installed[0], new Map()).homepage).toBe('https://requests.readthedocs.io/');
+    expect(mapPipItem({ metadata: { project_urls: { 'Home page': 'https://example.com' } } }, new Map()).homepage).toBe('https://example.com');
+});
+
+import { afterEach } from 'vitest';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { readNpmHomepage } from '../electron/scanners';
+const temporaryDirectories: string[] = [];
+function npmDirectory() {
+    const dir = mkdtempSync(join(tmpdir(), 'packagelens-npm-'));
+    temporaryDirectories.push(dir);
+    return dir;
+}
+afterEach(() => temporaryDirectories.splice(0).forEach(dir => rmSync(dir, { recursive: true, force: true })));
+
+it('reads an npm homepage and tolerates missing or invalid package JSON', async () => {
+    const dir = npmDirectory();
+    expect(await readNpmHomepage(dir)).toBeUndefined();
+    for (const content of ['bad json', 'null', '{}', '{"homepage":42}', '{"homepage":"  "}']) {
+        writeFileSync(join(dir, 'package.json'), content);
+        expect(await readNpmHomepage(dir)).toBeUndefined();
+    }
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ homepage: 'https://www.typescriptlang.org/' }));
+    expect(await readNpmHomepage(dir)).toBe('https://www.typescriptlang.org/');
+});
+
+it.each([true, false])('enriches npm scans without errors when package JSON exists: %s', async exists => {
+    const dir = npmDirectory();
+    const installPath = join(dir, 'node_modules', 'typescript');
+    mkdirSync(installPath, { recursive: true });
+    if (exists) writeFileSync(join(installPath, 'package.json'), JSON.stringify({ homepage: 'https://www.typescriptlang.org/' }));
+    const scan = await getNpmPackages(async cmd => result(JSON.stringify(cmd.includes('outdated') ? {} : { ...npm, path: dir })));
+    expect(scan.errors).toEqual([]);
+    expect(scan.packages[0].homepage).toBe(exists ? 'https://www.typescriptlang.org/' : '');
+});

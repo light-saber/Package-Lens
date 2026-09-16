@@ -8,6 +8,8 @@ export interface Package {
     installPath: string;
     status: PackageStatus;
     latestVersion?: string;
+    homepage: string;
+    installedAt?: string;
 }
 
 export interface ScannerError {
@@ -25,3 +27,14 @@ export type UpdateEvent =
     | { type: 'done'; manager: Package['manager']; name: string; exitCode: number }
     | { type: 'error'; manager: Package['manager']; name: string; message: string }
     | { type: 'summary'; ok: number; failed: number };
+
+export interface ScanResponse extends ScanResult {
+    scannedAt: string | null;
+    stale: boolean;
+}
+
+export interface CachedScan {
+    formatVersion: 1;
+    scannedAt: string;
+    result: ScanResult;
+}

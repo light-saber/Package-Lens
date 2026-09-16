@@ -6,7 +6,7 @@ import { registerIpcHandlers } from './ipc';
 // Fix PATH for macOS
 fixPath();
 
-registerIpcHandlers();
+registerIpcHandlers(() => app.getPath('userData'));
 
 let mainWindow: BrowserWindow | null = null;
 

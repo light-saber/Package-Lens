@@ -1,4 +1,4 @@
-import type { Package, UpdateEvent } from './types';
+import type { Package, ScanResponse, UpdateEvent } from './types';
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -9,6 +9,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-output', listener);
         return () => { ipcRenderer.removeListener('update-output', listener); };
     },
-    getPackages: () => ipcRenderer.invoke('get-packages'),
+    getPackages: (): Promise<ScanResponse> => ipcRenderer.invoke('get-packages'),
+    rescanPackages: (): Promise<ScanResponse> => ipcRenderer.invoke('rescan-packages'),
+    onScanComplete: (callback: (response: ScanResponse) => void) => {
+        const listener = (_event: Electron.IpcRendererEvent, response: ScanResponse) => callback(response);
+        ipcRenderer.on('scan-complete', listener);
+        return () => { ipcRenderer.removeListener('scan-complete', listener); };
+    },
     getUninstallCommand: (pkg: Package) => ipcRenderer.invoke('get-uninstall-command', pkg),
 });

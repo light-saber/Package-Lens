@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Package, ScanResult } from './types';
 import path from 'path';
+import { readFile } from 'node:fs/promises';
 
 const execAsync = promisify(exec);
 export interface CommandResult { stdout: string; stderr: string; exitCode: number; executionFailed?: boolean }
@@ -18,28 +19,31 @@ export async function runCommand(command: string): Promise<CommandResult> {
 function statusFields(version: string, latestVersion?: string): Pick<Package, 'status' | 'latestVersion'> {
     return latestVersion && latestVersion !== version ? { status: 'update', latestVersion } : { status: 'current' };
 }
-interface BrewFormula { name: string; desc?: string; installed: { version: string; path?: string }[] }
+interface BrewFormula { name: string; desc?: string; homepage?: string; urls?: { homepage?: string }; installed: { version: string; path?: string; time?: string }[] }
 export function mapBrewFormula(pkg: BrewFormula, outdatedMap: Map<string, string>): Package {
     const version = pkg.installed[0]?.version ?? '';
     return { name: pkg.name, version, manager: 'brew', description: pkg.desc ?? '',
+        homepage: pkg.homepage ?? pkg.urls?.homepage ?? '', installedAt: pkg.installed[0]?.time,
         installPath: pkg.installed[0]?.path ?? '/usr/local/Cellar/' + pkg.name,
         ...statusFields(version, outdatedMap.get(pkg.name)) };
 }
-interface BrewCask { token: string; name: string | string[]; version: string; desc?: string }
-interface PipItem { metadata?: { name?: string; version?: string; summary?: string }; project_name?: string; version?: string; metadata_location?: string }
+interface BrewCask { token: string; name: string | string[]; version: string; desc?: string; homepage?: string }
+interface PipItem { metadata?: { name?: string; version?: string; summary?: string; home_page?: string; project_urls?: Record<string, string> }; project_name?: string; version?: string; metadata_location?: string }
 type NpmOutdated = Record<string, { latest: string }>;
 export function mapBrewCask(pkg: BrewCask, outdatedMap: Map<string, string>): Package {
     return { name: pkg.token, version: pkg.version, manager: 'brew', description: pkg.desc ?? '',
+        homepage: pkg.homepage ?? '',
         installPath: '/Applications/' + pkg.name + '.app', ...statusFields(pkg.version, outdatedMap.get(pkg.token)) };
 }
 export function mapPipItem(item: PipItem, outdatedMap: Map<string, string>): Package {
     const name = item.metadata?.name || item.project_name || '';
     const version = item.metadata?.version || item.version || '';
     return { name, version, manager: 'pip', description: item.metadata?.summary || '',
+        homepage: item.metadata?.home_page || item.metadata?.project_urls?.['Homepage'] || item.metadata?.project_urls?.['Home page'] || '',
         installPath: item.metadata_location || '', ...statusFields(version, outdatedMap.get(name)) };
 }
 export function mapNpmEntry(name: string, details: { version: string; path?: string }, outdated: NpmOutdated): Package {
-    return { name, version: details.version, manager: 'npm', description: '',
+    return { name, version: details.version, manager: 'npm', description: '', homepage: '',
         installPath: path.join(details.path || '', 'node_modules', name), ...statusFields(details.version, outdated[name]?.latest) };
 }
 let pipPromise: Promise<'pip3' | 'pip'> | undefined;
@@ -105,7 +109,7 @@ export async function getPipPackages(runner: Runner = runCommand): Promise<ScanR
     });
 }
 export async function getNpmPackages(runner: Runner = runCommand): Promise<ScanResult> {
-    return scan('npm', 'npm list -g --depth=0 --json', 'npm outdated -g --json', runner, (data, outdated) => {
+    const result = await scan('npm', 'npm list -g --depth=0 --json', 'npm outdated -g --json', runner, (data, outdated) => {
         const list = record(data);
         const updates = record(outdated);
         for (const entry of Object.values(updates)) {
@@ -117,7 +121,22 @@ export async function getNpmPackages(runner: Runner = runCommand): Promise<ScanR
             return mapNpmEntry(name, { version: entry.version, path: typeof list.path === 'string' ? list.path : '' }, updates as NpmOutdated);
         });
     });
+    const packages = await Promise.all(result.packages.map(async pkg => {
+        const homepage = await readNpmHomepage(pkg.installPath);
+        return homepage ? { ...pkg, homepage } : pkg;
+    }));
+    return { ...result, packages };
 }
+
+export async function readNpmHomepage(installPath: string): Promise<string | undefined> {
+    try {
+        const data = record(JSON.parse(await readFile(path.join(installPath, 'package.json'), 'utf8')));
+        return typeof data.homepage === 'string' && data.homepage.trim() ? data.homepage : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 export async function getAllPackages(): Promise<ScanResult> {
     const results = await Promise.all([getBrewPackages(), getPipPackages(), getNpmPackages()]);
     return { packages: results.flatMap(result => result.packages), errors: results.flatMap(result => result.errors) };

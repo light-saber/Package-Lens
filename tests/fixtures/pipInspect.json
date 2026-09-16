@@ -3,7 +3,11 @@
     {
       "metadata": {
         "name": "requests",
-        "version": "2.0"
+        "version": "2.0",
+        "home_page": "https://requests.readthedocs.io/",
+        "project_urls": {
+          "Homepage": "https://requests.readthedocs.io/"
+        }
       },
       "metadata_location": "/python/requests.dist-info",
       "installer": "pip"

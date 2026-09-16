@@ -13,9 +13,11 @@
             {
               "path": "/other/dependency"
             }
-          ]
+          ],
+          "time": "2026-05-02 18:30:00 UTC"
         }
-      ]
+      ],
+      "homepage": "https://www.gnu.org/software/wget/"
     }
   ],
   "casks": [
@@ -24,7 +26,8 @@
       "name": [
         "Editor"
       ],
-      "version": "1.0"
+      "version": "1.0",
+      "homepage": "https://example.com/editor"
     }
   ]
 }

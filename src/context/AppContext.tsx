@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
-import type { Package, ScannerError, UpdateEvent } from '../types';
+import type { Package, ScannerError, ScanResponse, UpdateEvent } from '../types';
 
 interface UpdateLog { lines: string[]; exitCode?: number }
 interface AppContextType {
@@ -11,6 +11,8 @@ interface AppContextType {
     updateAll: () => Promise<void>;
     packages: Package[];
     scanErrors: ScannerError[];
+    scannedAt: string | null;
+    stale: boolean;
     managerCounts: Record<'all' | Package['manager'], number>;
     outdatedCount: number;
     statusFilter: 'all' | 'outdated';
@@ -31,6 +33,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [packages, setPackages] = useState<Package[]>([]);
     const [scanErrors, setScanErrors] = useState<ScannerError[]>([]);
+    const [scannedAt, setScannedAt] = useState<string | null>(null);
+    const [stale, setStale] = useState(false);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<'all' | 'outdated'>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -91,16 +95,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
 
+    const receiveScan = (data: ScanResponse) => {
+        setPackages(data.packages);
+        setSelectedPackage(selected => selected
+            ? data.packages.find(pkg => pkg.manager === selected.manager && pkg.name === selected.name) ?? null
+            : null);
+        setScanErrors(data.errors);
+        setScannedAt(data.scannedAt);
+        setStale(data.stale);
+    };
+
     const refreshPackages = async () => {
         if (busy.current) return;
         setLoading(true);
         try {
-            const data = await window.electronAPI.getPackages();
-            setPackages(data.packages);
-            setSelectedPackage(selected => selected
-                ? data.packages.find(pkg => pkg.manager === selected.manager && pkg.name === selected.name) ?? null
-                : null);
-            setScanErrors(data.errors);
+            receiveScan(await window.electronAPI.rescanPackages());
         } catch (error) {
             console.error('Failed to fetch packages:', error);
         } finally {
@@ -109,7 +118,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     useEffect(() => {
-        refreshPackages();
+        let active = true;
+        let receivedFresh = false;
+        const unsubscribe = window.electronAPI.onScanComplete(data => {
+            receivedFresh = true;
+            if (active) receiveScan(data);
+        });
+        void window.electronAPI.getPackages().then(data => {
+            // A fast background completion must not be overwritten by stale cache.
+            if (active && !(receivedFresh && data.stale)) receiveScan(data);
+        }).catch(error => {
+            console.error('Failed to fetch packages:', error);
+        }).finally(() => { if (active) setLoading(false); });
+        return () => { active = false; unsubscribe(); };
     }, []);
 
     const managerCounts = useMemo(() => ({
@@ -137,6 +158,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 updateAll: () => runUpdates(filteredPackages.filter(pkg => pkg.status === 'update'), true),
                 packages,
                 scanErrors,
+                scannedAt,
+                stale,
                 managerCounts,
                 outdatedCount,
                 statusFilter,
