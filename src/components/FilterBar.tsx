@@ -3,7 +3,9 @@ import { Search } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const FilterBar: React.FC = () => {
-    const { searchQuery, setSearchQuery, loading, refreshPackages, outdatedCount, statusFilter, setStatusFilter, scanErrors } = useApp();
+    const { searchQuery, setSearchQuery, loading, refreshPackages, outdatedCount, statusFilter, setStatusFilter, scanErrors, filteredPackages, updateAll, updateBusy, batchProgress } = useApp();
+
+    const updateCount = filteredPackages.filter(pkg => pkg.status === 'update').length;
 
     return (
         <>
@@ -21,7 +23,7 @@ export const FilterBar: React.FC = () => {
             </div>
             <button
                 onClick={refreshPackages}
-                disabled={loading}
+                disabled={loading || updateBusy}
                 className="refresh-btn"
             >
                 {loading ? 'Scanning...' : 'Refresh'}
@@ -36,6 +38,13 @@ export const FilterBar: React.FC = () => {
                     onClick={() => setStatusFilter(statusFilter === 'all' ? 'outdated' : 'all')}>
                     {statusFilter === 'all' ? 'Show outdated only' : 'Show all'}
                 </button>
+                {(outdatedCount > 0 || batchProgress) && <button className="update-btn"
+                    disabled={loading || updateBusy || updateCount === 0} onClick={updateAll}>
+                    Update all ({batchProgress?.total ?? updateCount})
+                </button>}
+                {batchProgress && <span className="update-progress" role="status">
+                    Updating {Math.min(batchProgress.completed + 1, batchProgress.total)} of {batchProgress.total}...
+                </span>}
             </div>
             {scanErrors.length > 0 && <div className="scan-errors" role="status">
                 {scanErrors.map((error, index) => <div key={`${error.manager}-${index}`}>{error.manager}: {error.message}</div>)}

@@ -19,3 +19,9 @@ export interface ScanResult {
     packages: Package[];
     errors: ScannerError[];
 }
+
+export type UpdateEvent =
+    | { type: 'output'; manager: Package['manager']; name: string; line: string }
+    | { type: 'done'; manager: Package['manager']; name: string; exitCode: number }
+    | { type: 'error'; manager: Package['manager']; name: string; message: string }
+    | { type: 'summary'; ok: number; failed: number };
