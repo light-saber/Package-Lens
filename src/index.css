@@ -17,6 +17,7 @@
   --color-warning-dim: rgba(224, 175, 104, 0.2);
   --color-danger: #f7768e;
   --color-info: #7dcfff;
+  --color-info-dim: rgba(125, 207, 255, 0.2);
 
   --border-color: #414868;
 
@@ -460,4 +461,57 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Update status */
+.status-unknown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-info);
+  font-size: 0.8rem;
+}
+
+.update-strip {
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.8rem;
+}
+
+.update-strip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.update-strip-count {
+  color: var(--text-secondary);
+  margin-right: auto;
+}
+
+.status-toggle {
+  color: var(--color-primary);
+  background: var(--color-primary-dim);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.status-toggle[aria-pressed="true"] {
+  border-color: var(--color-primary);
+}
+
+.status-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.scan-errors {
+  color: var(--color-warning);
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  max-height: 90px;
+  overflow-y: auto;
 }

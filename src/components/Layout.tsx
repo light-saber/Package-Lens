@@ -13,6 +13,7 @@ const NavItem = ({ label, icon: Icon, value }: { label: string; icon: LucideIcon
 };
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { managerCounts } = useApp();
     return (
         <div className="app-container">
             {/* Sidebar */}
@@ -25,11 +26,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
 
                 <nav className="sidebar-nav">
-                    <NavItem label="All Packages" icon={Layers} value="all" />
+                    <NavItem label={`All Packages (${managerCounts.all})`} icon={Layers} value="all" />
                     <div className="nav-section-title">Managers</div>
-                    <NavItem label="Homebrew" icon={Terminal} value="brew" />
-                    <NavItem label="Pip (Python)" icon={Terminal} value="pip" />
-                    <NavItem label="Npm (Node)" icon={Terminal} value="npm" />
+                    <NavItem label={`Homebrew (${managerCounts.brew})`} icon={Terminal} value="brew" />
+                    <NavItem label={`Pip (Python) (${managerCounts.pip})`} icon={Terminal} value="pip" />
+                    <NavItem label={`Npm (Node) (${managerCounts.npm})`} icon={Terminal} value="npm" />
                 </nav>
 
                 <div className="sidebar-footer">

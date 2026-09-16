@@ -54,7 +54,7 @@ export const PackageList: React.FC = () => {
                                         <span>Update: {pkg.latestVersion}</span>
                                     </div>
                                 ) : pkg.status === 'unknown' ? (
-                                    <div className="status-unknown" style={{ color: 'var(--color-info)' }}>
+                                    <div className="status-unknown">
                                         <HelpCircle size={14} />
                                         <span>Not checked</span>
                                     </div>
